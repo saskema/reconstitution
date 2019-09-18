@@ -29,7 +29,7 @@ You will obtain three graphics as PDF files:
 - Peaknumbers.pdf
 - Trp-d5_EICs.pdf
 
-The first graphic contains boxplots of the peak areas of the investigated internal standard Tryptophan-d<sub>5</sub>. The second graphic is a barplot displaying the total amount of features, that was found during peak picking by XCMS. The last graphic shows every peak of >tryptophan-d<sub>5</sub> in the investigated data set.
+The first graphic contains boxplots of the peak areas of the investigated internal standard Tryptophan-d<sub>5</sub>. The second graphic is a also displaying boxplots but those of the total amount of features, that was found during peak picking by XCMS. The last graphic shows every peak of >tryptophan-d<sub>5</sub> in the investigated data set. Statistics were conducted by comparing variabilities in the data set using a one-way ANOVA. Additionally Welch two sample t-test has been used to compare the means of each group against the group "QC".
 
 # Data files
 Data files can be found on MetaboLights via the study identifier [MTBLS1219](https://www.ebi.ac.uk/metabolights/MTBLS1219)

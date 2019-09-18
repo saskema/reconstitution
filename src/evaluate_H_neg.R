@@ -13,6 +13,17 @@
 ## Loading necessary packages
 library("tidyverse")
 library("xcms")
+library("ggpubr")
+
+ppm <- function(x, # Comparable quantity
+                y) # Measure
+{
+
+    ppm <- 10^6 * (x - y) / y
+
+    return(ppm)
+
+}
 
 ## Annotate compounds in XCMS peaklists (e.g. internal standards)
 annotate.compound  <-  function(data, # XCMS peaklist
@@ -68,7 +79,7 @@ set <- retcor(set, method = "obiwarp", plottype = "none")
 set <- group.density(set, bw = parameter[8])
 set <- retcor(set, method = "obiwarp", plottype = "none")
 set <- group.density(set, bw = parameter[8])
-set <- fillPeaks(set)
+set.filled <- fillPeaks(set)
 
 
 ##
@@ -77,32 +88,36 @@ set <- fillPeaks(set)
 
 ## load("evaluate.RData")
 
-Classes <- set$class
+Classes <- set.filled$class
 class.levels <- levels(Classes)
-peaklist <- peakTable(set)
+peaklist <- peakTable(set.filled)
 peaklist.annotated <- annotate.compound(peaklist, "Trp-d5", 208.1134, 458, rtlim = 5)
 write.csv(peaklist.annotated, file = "peaklist_annotated.csv")
 
-rownames(peaklist) <- groupnames(set)
-class.levels <- levels(set$class)
+rownames(peaklist) <- groupnames(set.filled)
+class.levels <- levels(set.filled$class)
 is <- as.data.frame(matrix(ncol = 2, nrow = 23, dimnames = list(NULL, c("area", "experiment"))))
-is$area <- t(peaklist.annotated[which(peaklist.annotated$Compound == "Trp-d5"),
-                                (8 + length(class.levels)):length(peaklist)])
-is$experiment <- set$class
+is$area <- t(peaklist.annotated[which(peaklist.annotated$Compound == "Trp-d5"),(8 + length(class.levels)):length(peaklist)])
+is$experiment <- set.filled$class
 
 p.is <- ggplot(is, aes(x = as.factor(experiment), y = is[,1] )) +
     geom_boxplot(aes(group = experiment)) +
+    stat_compare_means(method = "anova", label.y = 3.5*10^6)+
+    stat_compare_means(label = "p.signif", method = "t.test", ref.group = ".all.", label.y = 3.2*10^6) +
     xlab("Methanol Fraction, %") +
     ylab("Area") +
     theme_bw() 
 
-
-peaknumber <- as.data.frame(t(peaklist[,8:14]))
+peaknumber <- as.data.frame(t(peakTable(set)[,15:(14+length(set$class))]))
+peaknumber[is.na(peaknumber) == FALSE] <- 1
+peaknumber[is.na(peaknumber) == TRUE] <- 0
 peaknumber$sum <- apply(peaknumber, 1, sum)
-peaknumber$methanol <- c("0", "10", "20", "30", "40", "50", "QC")
+peaknumber$experiment <- set$class
 
-p.peaknumber <- ggplot(peaknumber, aes(x = methanol, y = sum)) +
-    geom_col() +
+p.peaknumber <- ggplot(peaknumber, aes(x = experiment, y = sum)) +
+    geom_boxplot(aes(group = experiment)) +
+    stat_compare_means(method = "anova", label.y = 1900)+
+    stat_compare_means(label = "p.signif", method = "t.test", ref.group = ".all.", label.y = 1800) +
     xlab("Methanol Fraction, %") +
     ylab("Number of Features") +
     theme_bw() 
