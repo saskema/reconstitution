@@ -86,16 +86,22 @@ set.filled <- fillPeaks(set)
 ## Start of evaluation
 ##
 
-## load("evaluate.RData")
+ load("evaluate.RData")
 
 Classes <- set.filled$class
 class.levels <- levels(Classes)
 peaklist <- peakTable(set.filled)
-peaklist.annotated <- annotate.compound(peaklist, "Trp-d5", 208.1134, 150, rtlim = 10)
+peaklist.annotated <- annotate.compound(data = peaklist,
+                                        compound.name = c("Trp-d5", "Palmitic", "Glucose"),
+                                        compound.mz = c(208.1134, 255.2329, 179.0561),
+                                        compound.rt = c(146, 530, 29),
+                                        rtlim = 5)
 write.csv(peaklist.annotated, file = "peaklist_annotated.csv")
 
 rownames(peaklist) <- groupnames(set.filled)
 class.levels <- levels(set.filled$class)
+
+## Plot Trp-d5
 is <- as.data.frame(matrix(ncol = 2, nrow = 23, dimnames = list(NULL, c("area", "experiment"))))
 is$area <- t(peaklist.annotated[which(peaklist.annotated$Compound == "Trp-d5"),
                                 (8 + length(class.levels)):length(peaklist)])
@@ -109,6 +115,35 @@ p.is <- ggplot(is, aes(x = as.factor(experiment), y = is[,1] )) +
     ylab("Area") +
     theme_bw() 
 
+## Plot Palmitic Acid
+palmitic <- as.data.frame(matrix(ncol = 3, nrow = 23, dimnames = list(NULL, c("area", "methanol", "experiment"))))
+palmitic$area <- t(peaklist.annotated[which(peaklist.annotated$Compound == "Palmitic"),(8 + length(class.levels)):length(peaklist)])
+colnames(palmitic[,1]) <- "area"
+palmitic$methanol <- set.filled$class
+
+p.palmitic <- ggplot(palmitic, aes(x = as.factor(methanol), y = palmitic[,1] )) +
+    geom_boxplot(aes(group = methanol)) +
+    stat_compare_means(method = "anova", label.y = 4*10^6)+
+    stat_compare_means(label = "p.signif", method = "t.test", ref.group = "QC", label.y = 3.6*10^6) +
+    xlab("Methanol Fraction, %") +
+    ylab("Area") +
+    theme_bw()
+
+## Plot Glucose
+gluc <- as.data.frame(matrix(ncol = 3, nrow = 23, dimnames = list(NULL, c("area", "methanol", "experiment"))))
+gluc$area <- t(peaklist.annotated[which(peaklist.annotated$Compound == "Glucose"),(8 + length(class.levels)):length(peaklist)])
+colnames(gluc[,1]) <- "area"
+gluc$methanol <- set.filled$class
+
+p.gluc <- ggplot(gluc, aes(x = as.factor(methanol), y = gluc[,1] )) +
+    geom_boxplot(aes(group = methanol)) +
+    stat_compare_means(method = "anova", label.y = 1.35*10^8)+
+    stat_compare_means(label = "p.signif", method = "t.test", ref.group = "QC", label.y = 1.25*10^8) +
+    xlab("Methanol Fraction, %") +
+    ylab("Area") +
+    theme_bw()
+
+## Plot Peaknumber
 peaknumber <- as.data.frame(t(peakTable(set)[,15:(14+length(set$class))]))
 peaknumber[is.na(peaknumber) == FALSE] <- 1
 peaknumber[is.na(peaknumber) == TRUE] <- 0
@@ -124,6 +159,8 @@ p.peaknumber <- ggplot(peaknumber, aes(x = experiment, y = sum)) +
     theme_bw() 
 
 ggsave("IS_Area.pdf", p.is, width = 8, height = 6, device = "pdf")
+ggsave("Palmitic_Acid_Area.pdf", p.palmitic, width = 8, height = 6, device = "pdf")
+ggsave("Glucose_Area.pdf", p.gluc, width = 8, height = 6, device = "pdf")
 ggsave("Peaknumbers.pdf", p.peaknumber, width = 8, height = 6, device = "pdf")
 
 ## Plot internal standard Trp-d5

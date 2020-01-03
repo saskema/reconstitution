@@ -86,16 +86,21 @@ set.filled <- fillPeaks(set)
 ## Start of evaluation
 ##
 
-## load("evaluate.RData")
+ load("evaluate.RData")
 
 Classes <- set.filled$class
 class.levels <- levels(Classes)
 peaklist <- peakTable(set.filled)
-peaklist.annotated <- annotate.compound(peaklist, "Trp-d5", 210.1291, 458, rtlim = 5)
+peaklist.annotated <- annotate.compound(data = peaklist,
+                                        compound.name = c("Trp-d5", "Creatinine", "GPCho160160"),
+                                        compound.mz = c(210.1291, 114.0662, 734.5694),
+                                        compound.rt = c(458, 366, 346),
+                                        rtlim = 2)
 write.csv(peaklist.annotated, file = "peaklist_annotated.csv")
-
 rownames(peaklist) <- groupnames(set.filled)
 class.levels <- levels(set.filled$class)
+
+## Plot Trp-d5
 is <- as.data.frame(matrix(ncol = 2, nrow = 23, dimnames = list(NULL, c("area", "experiment"))))
 is$area <- t(peaklist.annotated[which(peaklist.annotated$Compound == "Trp-d5"),
                                 (8 + length(class.levels)):length(peaklist)])
@@ -109,6 +114,35 @@ p.is <- ggplot(is, aes(x = as.factor(experiment), y = is[,1] )) +
     ylab("Area") +
     theme_bw() 
 
+## Plot Creatinine
+crea <- as.data.frame(matrix(ncol = 3, nrow = 23, dimnames = list(NULL, c("area", "methanol", "experiment"))))
+crea$area <- t(peaklist.annotated[which(peaklist.annotated$Compound == "Creatinine"),(8 + length(class.levels)):length(peaklist)])
+colnames(crea[,1]) <- "area"
+crea$methanol <- set.filled$class
+
+p.crea <- ggplot(crea, aes(x = as.factor(methanol), y = crea[,1] )) +
+    geom_boxplot(aes(group = methanol)) +
+    stat_compare_means(method = "anova", label.y = 7.8*10^9)+
+    stat_compare_means(label = "p.signif", method = "t.test", ref.group = "QC", label.y = 7.4*10^9) +
+    xlab("Methanol Fraction, %") +
+    ylab("Area") +
+    theme_bw()
+
+## Plot GPCho(16:0/16:0)
+gpcho <- as.data.frame(matrix(ncol = 3, nrow = 23, dimnames = list(NULL, c("area", "methanol", "experiment"))))
+gpcho$area <- t(peaklist.annotated[which(peaklist.annotated$Compound == "GPCho160160"),(8 + length(class.levels)):length(peaklist)])
+colnames(gpcho[,1]) <- "area"
+gpcho$methanol <- set.filled$class
+
+p.gpcho <- ggplot(gpcho, aes(x = as.factor(methanol), y = gpcho[,1] )) +
+    geom_boxplot(aes(group = methanol)) +
+    stat_compare_means(method = "anova", label.y = 4*10^7)+
+    stat_compare_means(label = "p.signif", method = "t.test", ref.group = "QC", label.y = 3.7*10^7) +
+    xlab("Methanol Fraction, %") +
+    ylab("Area") +
+    theme_bw()
+
+## Plot Peaknumber
 peaknumber <- as.data.frame(t(peakTable(set)[,15:(14+length(set$class))]))
 peaknumber[is.na(peaknumber) == FALSE] <- 1
 peaknumber[is.na(peaknumber) == TRUE] <- 0
@@ -124,6 +158,8 @@ p.peaknumber <- ggplot(peaknumber, aes(x = experiment, y = sum)) +
     theme_bw() 
 
 ggsave("IS_Area.pdf", p.is, width = 8, height = 6, device = "pdf")
+ggsave("Creatinine_Area.pdf", p.crea, width = 8, height = 6, device = "pdf")
+ggsave("GPCho_16_0_16_0_Area.pdf", p.gpcho, width = 8, height = 6, device = "pdf")
 ggsave("Peaknumbers.pdf", p.peaknumber, width = 8, height = 6, device = "pdf")
 
 ## Plot internal standard Trp-d5
